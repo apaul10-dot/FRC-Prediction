@@ -33,13 +33,13 @@ const Header = () => {
             <Button variant="nav" size="default" onClick={() => navigate("/dashboard")}>
               Dashboard
             </Button>
-            <Button variant="nav" size="default">
+            <Button variant="nav" size="default" onClick={() => navigate("/strategy")}>
               Strategy
             </Button>
-            <Button variant="nav" size="default">
+            <Button variant="nav" size="default" onClick={() => navigate("/ai-predictor")}>
               AI Predictor
             </Button>
-            <Button variant="nav" size="default">
+            <Button variant="nav" size="default" onClick={() => navigate("/team-info")}>
               Team Info
             </Button>
             <Button variant="nav" size="default" onClick={() => navigate("/")}>

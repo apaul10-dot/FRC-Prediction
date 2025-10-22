@@ -1,13 +1,15 @@
 import Header from "@/components/Header";
+import ScrollIndicator from "@/components/ScrollIndicator";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Background glow effects */}
-      <div className="absolute bottom-0 right-0 w-[800px] h-[800px] bg-glow-purple rounded-full blur-[200px] opacity-30 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-glow-purple-dark rounded-full blur-[150px] opacity-20 pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[800px] h-[800px] bg-glow-purple rounded-full blur-[200px] opacity-20 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-glow-purple-dark rounded-full blur-[150px] opacity-15 pointer-events-none" />
       
       <Header />
+      <ScrollIndicator />
       
       <main className="container mx-auto px-6 flex items-center justify-center min-h-screen">
         <div className="text-center space-y-8 -mt-20">

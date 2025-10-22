@@ -53,8 +53,8 @@ export default {
         },
       },
       boxShadow: {
-        glow: "0 0 60px hsl(var(--glow-purple) / 0.4), 0 0 120px hsl(var(--glow-purple) / 0.2)",
-        "glow-sm": "0 0 30px hsl(var(--glow-purple) / 0.3)",
+        glow: "0 0 50px hsl(var(--glow-purple) / 0.3), 0 0 100px hsl(var(--glow-purple) / 0.15)",
+        "glow-sm": "0 0 25px hsl(var(--glow-purple) / 0.2)",
       },
       borderRadius: {
         lg: "var(--radius)",
