@@ -45,20 +45,13 @@ const MatchPredictor = () => {
   };
 
   const calculatePrediction = (redTeams: TeamStats[], blueTeams: TeamStats[]): Prediction => {
-    // Calculate alliance totals
-    const redTotalOPR = redTeams.reduce((sum, team) => sum + team.opr, 0);
-    const blueTotalOPR = blueTeams.reduce((sum, team) => sum + team.opr, 0);
-    
-    const redTotalDPR = redTeams.reduce((sum, team) => sum + team.dpr, 0);
-    const blueTotalDPR = blueTeams.reduce((sum, team) => sum + team.dpr, 0);
+    // Calculate predicted scores using OPR (which represents expected contribution to alliance score)
+    const redScore = redTeams.reduce((sum, team) => sum + team.opr, 0);
+    const blueScore = blueTeams.reduce((sum, team) => sum + team.opr, 0);
 
-    // Predicted scores based on OPR (offensive power) minus opponent's DPR (defensive power)
-    const redScore = Math.max(0, redTotalOPR - blueTotalDPR);
-    const blueScore = Math.max(0, blueTotalOPR - redTotalDPR);
-
-    // Calculate win probability using a sigmoid function
+    // Calculate win probability using score difference
     const scoreDiff = redScore - blueScore;
-    const redWinProbability = 1 / (1 + Math.exp(-scoreDiff / 20)) * 100;
+    const redWinProbability = 1 / (1 + Math.exp(-scoreDiff / 25)) * 100;
     const blueWinProbability = 100 - redWinProbability;
 
     return {
@@ -171,7 +164,7 @@ const MatchPredictor = () => {
                   </span>
                   <span className="font-semibold">{team.avgAutoPoints.toFixed(1)}</span>
                 </div>
-                <Progress value={(team.avgAutoPoints / 20) * 100} className="h-2" />
+                <Progress value={(team.avgAutoPoints / 30) * 100} className="h-2" />
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">
@@ -181,7 +174,7 @@ const MatchPredictor = () => {
                   </span>
                   <span className="font-semibold">{team.avgTeleopPoints.toFixed(1)}</span>
                 </div>
-                <Progress value={(team.avgTeleopPoints / 50) * 100} className="h-2" />
+                <Progress value={(team.avgTeleopPoints / 100) * 100} className="h-2" />
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">
@@ -191,7 +184,7 @@ const MatchPredictor = () => {
                   </span>
                   <span className="font-semibold">{team.avgEndgamePoints.toFixed(1)}</span>
                 </div>
-                <Progress value={(team.avgEndgamePoints / 15) * 100} className="h-2" />
+                <Progress value={(team.avgEndgamePoints / 30) * 100} className="h-2" />
               </div>
             </div>
 

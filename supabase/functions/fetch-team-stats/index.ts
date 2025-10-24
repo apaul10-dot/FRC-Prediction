@@ -71,26 +71,22 @@ serve(async (req) => {
             const breakdown = match.score_breakdown?.[alliance];
 
             if (breakdown) {
-              // 2025 REEFSCAPE scoring structure
-              // Auto period points
-              const autoNavPoints = breakdown.autoNavPoints || 0;
-              const autoAlgaePoints = breakdown.autoAlgaePoints || 0;
-              const autoCoralPoints = breakdown.autoCoralPoints || 0;
-              autoPoints += autoNavPoints + autoAlgaePoints + autoCoralPoints;
+              // 2025 REEFSCAPE scoring - using actual total fields from API
+              // Then calculate individual contributions via game piece tracking
+              const totalAutoPoints = breakdown.autoPoints || 0;
+              const totalTeleopPoints = breakdown.teleopPoints || 0;
+              const totalEndgamePoints = breakdown.endGameBargeTotalPoints || breakdown.endgamePoints || 0;
               
-              // Teleop period points
-              const teleopAlgaePoints = breakdown.teleopAlgaePoints || 0;
-              const teleopCoralPoints = breakdown.teleopCoralPoints || 0;
-              const teleopProcessorPoints = breakdown.teleopProcessorPoints || 0;
-              const teleopCageBonusPoints = breakdown.teleopCageBonusPoints || 0;
-              teleopPoints += teleopAlgaePoints + teleopCoralPoints + teleopProcessorPoints + teleopCageBonusPoints;
-              
-              // Endgame points (climbing/parking)
-              const endgameClimbPoints = breakdown.endgameClimbPoints || 0;
-              const endgameParkPoints = breakdown.endgameParkPoints || 0;
-              endgamePoints += endgameClimbPoints + endgameParkPoints;
+              autoPoints += totalAutoPoints;
+              teleopPoints += totalTeleopPoints;
+              endgamePoints += totalEndgamePoints;
               
               matchCount++;
+              
+              // Log first match breakdown for debugging
+              if (matchCount === 1) {
+                console.log('Sample breakdown for team:', teamNumber, JSON.stringify(breakdown, null, 2));
+              }
             }
           });
         }
