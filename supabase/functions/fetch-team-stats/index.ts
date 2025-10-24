@@ -48,7 +48,7 @@ serve(async (req) => {
           teamInfo = await teamInfoRes.json();
         }
 
-        // Get team's matches at this event to calculate auto and endgame percentages
+        // Get team's matches at this event to calculate auto, teleop, and endgame points
         const matchesUrl = `https://www.thebluealliance.com/api/v3/team/frc${teamNumber}/event/${event}/matches`;
         const matchesRes = await fetch(matchesUrl, { headers });
         
@@ -71,9 +71,25 @@ serve(async (req) => {
             const breakdown = match.score_breakdown?.[alliance];
 
             if (breakdown) {
-              autoPoints += breakdown.autoPoints || 0;
-              teleopPoints += breakdown.teleopPoints || 0;
-              endgamePoints += breakdown.endgamePoints || 0;
+              // 2025 REEFSCAPE scoring structure
+              // Auto period points
+              const autoNavPoints = breakdown.autoNavPoints || 0;
+              const autoAlgaePoints = breakdown.autoAlgaePoints || 0;
+              const autoCoralPoints = breakdown.autoCoralPoints || 0;
+              autoPoints += autoNavPoints + autoAlgaePoints + autoCoralPoints;
+              
+              // Teleop period points
+              const teleopAlgaePoints = breakdown.teleopAlgaePoints || 0;
+              const teleopCoralPoints = breakdown.teleopCoralPoints || 0;
+              const teleopProcessorPoints = breakdown.teleopProcessorPoints || 0;
+              const teleopCageBonusPoints = breakdown.teleopCageBonusPoints || 0;
+              teleopPoints += teleopAlgaePoints + teleopCoralPoints + teleopProcessorPoints + teleopCageBonusPoints;
+              
+              // Endgame points (climbing/parking)
+              const endgameClimbPoints = breakdown.endgameClimbPoints || 0;
+              const endgameParkPoints = breakdown.endgameParkPoints || 0;
+              endgamePoints += endgameClimbPoints + endgameParkPoints;
+              
               matchCount++;
             }
           });
