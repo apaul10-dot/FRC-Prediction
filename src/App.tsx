@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Strategy from "./pages/Strategy";
 import AIPredictor from "./pages/AIPredictor";
 import TeamInfo from "./pages/TeamInfo";
+import MatchPredictor from "./pages/MatchPredictor";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/strategy" element={<Strategy />} />
           <Route path="/ai-predictor" element={<AIPredictor />} />
           <Route path="/team-info" element={<TeamInfo />} />
+          <Route path="/match-predictor" element={<MatchPredictor />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

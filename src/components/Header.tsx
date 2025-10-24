@@ -39,6 +39,9 @@ const Header = () => {
             <Button variant="nav" size="default" onClick={() => navigate("/ai-predictor")}>
               AI Predictor
             </Button>
+            <Button variant="nav" size="default" onClick={() => navigate("/match-predictor")}>
+              Match Predictor
+            </Button>
             <Button variant="nav" size="default" onClick={() => navigate("/team-info")}>
               Team Info
             </Button>
