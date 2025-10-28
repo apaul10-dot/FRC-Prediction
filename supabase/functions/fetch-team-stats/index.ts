@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { teamNumbers, event } = await req.json();
+    const { teamNumbers, event, validateOnly } = await req.json();
     console.log('Fetching stats for teams:', teamNumbers, 'at event:', event);
 
     const TBA_API_KEY = Deno.env.get('TBA_API_KEY');
@@ -23,6 +23,29 @@ serve(async (req) => {
       'X-TBA-Auth-Key': TBA_API_KEY,
       'Accept': 'application/json',
     };
+
+    // If validateOnly, just check if teams are at the event
+    if (validateOnly) {
+      const eventTeamsUrl = `https://www.thebluealliance.com/api/v3/event/${event}/teams/simple`;
+      const eventTeamsRes = await fetch(eventTeamsUrl, { headers });
+      
+      if (!eventTeamsRes.ok) {
+        throw new Error('Invalid event code or event not found');
+      }
+
+      const eventTeams = await eventTeamsRes.json();
+      const validTeamNumbers = eventTeams.map((t: any) => t.team_number.toString());
+      
+      const invalidTeams = teamNumbers.filter((num: string) => !validTeamNumbers.includes(num));
+      
+      return new Response(JSON.stringify({ 
+        valid: invalidTeams.length === 0,
+        invalidTeams,
+        validTeams: validTeamNumbers
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Fetch team stats for all teams
     const teamStatsPromises = teamNumbers.map(async (teamNumber: string) => {
@@ -71,15 +94,16 @@ serve(async (req) => {
             const breakdown = match.score_breakdown?.[alliance];
 
             if (breakdown) {
-              // 2025 REEFSCAPE scoring - using actual total fields from API
-              // Then calculate individual contributions via game piece tracking
-              const totalAutoPoints = breakdown.autoPoints || 0;
-              const totalTeleopPoints = breakdown.teleopPoints || 0;
-              const totalEndgamePoints = breakdown.endGameBargeTotalPoints || breakdown.endgamePoints || 0;
+              // 2025 REEFSCAPE - Alliance totals divided by 3 for individual contribution
+              // This is an approximation since TBA doesn't track per-robot contributions
+              const allianceAutoPoints = breakdown.autoPoints || 0;
+              const allianceTeleopPoints = breakdown.teleopPoints || 0;
+              const allianceEndgamePoints = breakdown.endGameBargeTotalPoints || breakdown.endgamePoints || 0;
               
-              autoPoints += totalAutoPoints;
-              teleopPoints += totalTeleopPoints;
-              endgamePoints += totalEndgamePoints;
+              // Estimate individual contribution as 1/3 of alliance total
+              autoPoints += allianceAutoPoints / 3;
+              teleopPoints += allianceTeleopPoints / 3;
+              endgamePoints += allianceEndgamePoints / 3;
               
               matchCount++;
               

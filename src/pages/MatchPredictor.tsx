@@ -37,6 +37,7 @@ const MatchPredictor = () => {
   const [blueStats, setBlueStats] = useState<TeamStats[]>([]);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [loading, setLoading] = useState(false);
+  const [validTeams, setValidTeams] = useState<string[]>([]);
 
   const handleTeamChange = (alliance: 'red' | 'blue', index: number, value: string) => {
     const teams = alliance === 'red' ? [...redTeams] : [...blueTeams];
@@ -45,13 +46,41 @@ const MatchPredictor = () => {
   };
 
   const calculatePrediction = (redTeams: TeamStats[], blueTeams: TeamStats[]): Prediction => {
-    // Calculate predicted scores using OPR (which represents expected contribution to alliance score)
-    const redScore = redTeams.reduce((sum, team) => sum + team.opr, 0);
-    const blueScore = blueTeams.reduce((sum, team) => sum + team.opr, 0);
+    // Linear regression model using multiple features
+    // Weights determined by typical FRC scoring patterns
+    const weights = {
+      opr: 0.7,      // Primary offensive indicator
+      dpr: -0.3,     // Defensive impact (negative for opponent)
+      ccwm: 0.2,     // Win contribution
+      auto: 0.05,    // Auto contribution weight
+      teleop: 0.04,  // Teleop contribution weight
+      endgame: 0.06  // Endgame contribution weight
+    };
 
-    // Calculate win probability using score difference
+    const calculateAllianceScore = (teams: TeamStats[]) => {
+      return teams.reduce((sum, team) => {
+        return sum + 
+          (team.opr * weights.opr) +
+          (team.ccwm * weights.ccwm) +
+          (team.avgAutoPoints * weights.auto) +
+          (team.avgTeleopPoints * weights.teleop) +
+          (team.avgEndgamePoints * weights.endgame);
+      }, 0);
+    };
+
+    const redOffense = calculateAllianceScore(redTeams);
+    const blueOffense = calculateAllianceScore(blueTeams);
+    
+    const redDefense = redTeams.reduce((sum, team) => sum + team.dpr, 0) * weights.dpr;
+    const blueDefense = blueTeams.reduce((sum, team) => sum + team.dpr, 0) * weights.dpr;
+
+    // Final scores: offense minus opponent's defensive impact
+    const redScore = Math.max(0, redOffense + blueDefense);
+    const blueScore = Math.max(0, blueOffense + redDefense);
+
+    // Calculate win probability using logistic function
     const scoreDiff = redScore - blueScore;
-    const redWinProbability = 1 / (1 + Math.exp(-scoreDiff / 25)) * 100;
+    const redWinProbability = 1 / (1 + Math.exp(-scoreDiff / 20)) * 100;
     const blueWinProbability = 100 - redWinProbability;
 
     return {
@@ -62,6 +91,39 @@ const MatchPredictor = () => {
     };
   };
 
+  const validateTeams = async () => {
+    if (!eventKey.trim()) {
+      toast.error("Please enter an event key");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-team-stats`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ 
+          teamNumbers: [], 
+          event: eventKey,
+          validateOnly: true 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Invalid event code');
+      }
+
+      const data = await response.json();
+      setValidTeams(data.validTeams);
+      toast.success(`Loaded ${data.validTeams.length} teams from event`);
+    } catch (error: any) {
+      console.error('Error validating event:', error);
+      toast.error(error.message || "Failed to load event teams");
+    }
+  };
+
   const fetchStats = async () => {
     const allRedTeams = redTeams.filter(t => t.trim());
     const allBlueTeams = blueTeams.filter(t => t.trim());
@@ -69,6 +131,17 @@ const MatchPredictor = () => {
     if (allRedTeams.length === 0 || allBlueTeams.length === 0) {
       toast.error("Please enter teams for both alliances");
       return;
+    }
+
+    // Validate teams are at the event
+    if (validTeams.length > 0) {
+      const invalidRed = allRedTeams.filter(t => !validTeams.includes(t));
+      const invalidBlue = allBlueTeams.filter(t => !validTeams.includes(t));
+      
+      if (invalidRed.length > 0 || invalidBlue.length > 0) {
+        toast.error(`Teams not at event: ${[...invalidRed, ...invalidBlue].join(', ')}`);
+        return;
+      }
     }
 
     setLoading(true);
@@ -217,15 +290,30 @@ const MatchPredictor = () => {
         <Card className="max-w-4xl mx-auto p-8 mb-8">
           <div className="mb-6">
             <label className="block text-sm font-medium mb-2">Event Key</label>
-            <Input
-              value={eventKey}
-              onChange={(e) => setEventKey(e.target.value)}
-              placeholder="e.g., 2024cmptx"
-              className="max-w-xs"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Find event keys at thebluealliance.com (format: YYYYeventcode)
-            </p>
+            <div className="flex gap-2 items-start">
+              <div className="flex-1">
+                <Input
+                  value={eventKey}
+                  onChange={(e) => {
+                    setEventKey(e.target.value);
+                    setValidTeams([]);
+                  }}
+                  placeholder="e.g., 2025txfor"
+                  className="max-w-xs"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Find event keys at thebluealliance.com (format: YYYYeventcode)
+                </p>
+              </div>
+              <Button onClick={validateTeams} variant="outline">
+                Load Event Teams
+              </Button>
+            </div>
+            {validTeams.length > 0 && (
+              <p className="text-sm text-green-600 mt-2">
+                ✓ {validTeams.length} teams loaded from event
+              </p>
+            )}
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 mb-6">
@@ -235,14 +323,18 @@ const MatchPredictor = () => {
                 Red Alliance
               </h3>
               {redTeams.map((team, idx) => (
-                <Input
-                  key={idx}
-                  value={team}
-                  onChange={(e) => handleTeamChange('red', idx, e.target.value)}
-                  placeholder={`Team ${idx + 1} number`}
-                  className="mb-2"
-                  type="number"
-                />
+                <div key={idx} className="mb-2">
+                  <Input
+                    value={team}
+                    onChange={(e) => handleTeamChange('red', idx, e.target.value)}
+                    placeholder={`Team ${idx + 1} number`}
+                    type="number"
+                    className={validTeams.length > 0 && team && !validTeams.includes(team) ? 'border-red-500' : ''}
+                  />
+                  {validTeams.length > 0 && team && !validTeams.includes(team) && (
+                    <p className="text-xs text-red-500 mt-1">Not at this event</p>
+                  )}
+                </div>
               ))}
             </div>
 
@@ -252,14 +344,18 @@ const MatchPredictor = () => {
                 Blue Alliance
               </h3>
               {blueTeams.map((team, idx) => (
-                <Input
-                  key={idx}
-                  value={team}
-                  onChange={(e) => handleTeamChange('blue', idx, e.target.value)}
-                  placeholder={`Team ${idx + 1} number`}
-                  className="mb-2"
-                  type="number"
-                />
+                <div key={idx} className="mb-2">
+                  <Input
+                    value={team}
+                    onChange={(e) => handleTeamChange('blue', idx, e.target.value)}
+                    placeholder={`Team ${idx + 1} number`}
+                    type="number"
+                    className={validTeams.length > 0 && team && !validTeams.includes(team) ? 'border-red-500' : ''}
+                  />
+                  {validTeams.length > 0 && team && !validTeams.includes(team) && (
+                    <p className="text-xs text-red-500 mt-1">Not at this event</p>
+                  )}
+                </div>
               ))}
             </div>
           </div>
